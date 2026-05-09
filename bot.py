@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # --- SOZLAMALAR ---
 TOKEN = os.getenv("BOT_TOKEN", "8185111678:AAG2fycO550HyYxB2AV2VS1srAzYA_J8X4Y")
 ADMIN_ID = 7751791288
-CHANNELS = ["@byamirov7"]
+CHANNELS = []
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
