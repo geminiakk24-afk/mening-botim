@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("BOT_TOKEN", "8185111678:AAG2fycO550HyYxB2AV2VS1srAzYA_J8X4Y")
 ADMIN_ID = 7751791288
 CHANNELS = []
+INSTAGRAM_USERNAME = "uzb.aa.7"
+INSTAGRAM_PASSWORD = "amirov7075"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -32,6 +34,8 @@ async def add_user(user_id: int):
 
 # --- OBUNANI TEKSHIRISH ---
 async def check_sub(user_id: int) -> bool:
+    if not CHANNELS:
+        return True
     for channel in CHANNELS:
         try:
             member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
@@ -44,12 +48,19 @@ async def check_sub(user_id: int) -> bool:
 
 # --- VIDEO YUKLASH ---
 def download_video(url: str) -> str:
+    is_instagram = "instagram.com" in url
+
     ydl_opts = {
-        "format": "best[filesize<50M]/best",  # 50MB gacha cheklash
+        "format": "best[filesize<50M]/best",
         "outtmpl": "video_%(id)s.%(ext)s",
         "quiet": True,
-        "noplaylist": True,  # Faqat bitta video
+        "noplaylist": True,
     }
+
+    if is_instagram:
+        ydl_opts["username"] = INSTAGRAM_USERNAME
+        ydl_opts["password"] = INSTAGRAM_PASSWORD
+
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         return ydl.prepare_filename(info)
@@ -60,7 +71,7 @@ async def start_cmd(message: types.Message):
     await add_user(message.from_user.id)
     await message.answer(
         "👋 Salom! Video yuklovchi botga xush kelibsiz!\n\n"
-        "📎 Videoni yuklash uchun link yuboring (YouTube, Instagram va boshqalar)."
+        "📎 Videoni yuklash uchun link yuboring (YouTube, Instagram, TikTok va boshqalar)."
     )
 
 # --- LINK KELGANDA ---
@@ -82,7 +93,7 @@ async def handle_link(message: types.Message):
     status_msg = await message.answer("⏳ Video yuklanmoqda, biroz kuting...")
 
     try:
-        loop = asyncio.get_running_loop()  # to'g'ri usul
+        loop = asyncio.get_running_loop()
         file_path = await loop.run_in_executor(None, download_video, message.text)
 
         if not os.path.exists(file_path):
@@ -106,7 +117,6 @@ async def handle_link(message: types.Message):
         return
 
     finally:
-        # Faylni har doim o'chirib yuborish
         if "file_path" in locals() and os.path.exists(file_path):
             os.remove(file_path)
         try:
@@ -132,3 +142,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+                             
