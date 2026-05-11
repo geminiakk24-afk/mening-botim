@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("BOT_TOKEN", "8185111678:AAG2fycO550HyYxB2AV2VS1srAzYA_J8X4Y")
 ADMIN_ID = 7751791288
 CHANNELS = []
-INSTAGRAM_USERNAME = "uzb.aa.7"
-INSTAGRAM_PASSWORD = "amirov7075"
+COOKIE_FILE = "instagram.com_cookies.txt"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -57,9 +56,8 @@ def download_video(url: str) -> str:
         "noplaylist": True,
     }
 
-    if is_instagram:
-        ydl_opts["username"] = INSTAGRAM_USERNAME
-        ydl_opts["password"] = INSTAGRAM_PASSWORD
+    if is_instagram and os.path.exists(COOKIE_FILE):
+        ydl_opts["cookiefile"] = COOKIE_FILE
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
@@ -142,4 +140,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-                             
