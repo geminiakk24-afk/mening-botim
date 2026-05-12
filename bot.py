@@ -62,20 +62,33 @@ async def check_sub(user_id: int) -> bool:
 # --- VIDEO YUKLASH ---
 def download_video(url: str) -> str:
     is_instagram = "instagram.com" in url
+    is_pinterest = "pinterest.com" in url or "pin.it" in url
+    is_youtube = "youtube.com" in url or "youtu.be" in url
 
-    # Avval proksisiz sinab ko'ramiz
     ydl_opts = {
-        "format": "best[filesize<50M]/best",
         "outtmpl": "video_%(id)s.%(ext)s",
         "quiet": True,
         "noplaylist": True,
+        "merge_output_format": "mp4",
     }
 
-    if is_instagram and os.path.exists(COOKIE_FILE):
-        ydl_opts["cookiefile"] = COOKIE_FILE
+    # YouTube Shorts va oddiy YouTube uchun
+    if is_youtube:
+        ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        ydl_opts["postprocessors"] = [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",
+        }]
 
-    # Instagram uchun proksi bilan sinab ko'ramiz
-    if is_instagram:
+    # Pinterest uchun
+    elif is_pinterest:
+        ydl_opts["format"] = "best"
+
+    # Instagram uchun proksi
+    elif is_instagram:
+        ydl_opts["format"] = "best[filesize<50M]/best"
+        if os.path.exists(COOKIE_FILE):
+            ydl_opts["cookiefile"] = COOKIE_FILE
         for proxy in PROXIES:
             try:
                 ydl_opts["proxy"] = proxy
@@ -85,11 +98,18 @@ def download_video(url: str) -> str:
             except Exception as e:
                 logger.warning(f"Proksi {proxy} ishlamadi: {e}")
                 continue
-        raise Exception("Barcha proksilar ishlamadi")
+        raise Exception("Instagram: barcha proksilar ishlamadi")
+
     else:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            return ydl.prepare_filename(info)
+        ydl_opts["format"] = "best[filesize<50M]/best"
+
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info)
+        # .mp4 kengaytmasini tekshirish
+        if not filename.endswith(".mp4"):
+            filename = filename.rsplit(".", 1)[0] + ".mp4"
+        return filename
 
 # --- /start ---
 @dp.message(Command("start"))
@@ -97,7 +117,12 @@ async def start_cmd(message: types.Message):
     await add_user(message.from_user.id)
     await message.answer(
         "👋 Salom! Video yuklovchi botga xush kelibsiz!\n\n"
-        "📎 Videoni yuklash uchun link yuboring (YouTube, Instagram, TikTok va boshqalar)."
+        "📎 Qo'llab-quvvatlanadigan saytlar:\n"
+        "• YouTube va YouTube Shorts\n"
+        "• Instagram\n"
+        "• TikTok\n"
+        "• Pinterest\n\n"
+        "Video linkini yuboring! 🎬"
     )
 
 # --- LINK KELGANDA ---
