@@ -17,10 +17,24 @@ ADMIN_ID = 7751791288
 CHANNELS = []
 COOKIE_FILE = "instagram.com_cookies.txt"
 
+# --- PROKSILAR ---
+PROXIES = [
+    "http://gofactvd:hywvsnkhr45b@31.59.20.176:6754",
+    "http://gofactvd:hywvsnkhr45b@31.56.127.193:7684",
+    "http://gofactvd:hywvsnkhr45b@45.38.107.97:6014",
+    "http://gofactvd:hywvsnkhr45b@107.172.163.27:6543",
+    "http://gofactvd:hywvsnkhr45b@198.23.243.226:6361",
+    "http://gofactvd:hywvsnkhr45b@216.10.27.159:6837",
+    "http://gofactvd:hywvsnkhr45b@142.111.67.146:5611",
+    "http://gofactvd:hywvsnkhr45b@191.96.254.138:6185",
+    "http://gofactvd:hywvsnkhr45b@31.58.9.4:6077",
+    "http://gofactvd:hywvsnkhr45b@23.229.19.94:8689",
+]
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- BAZA (asinxron) ---
+# --- BAZA ---
 async def init_db():
     async with aiosqlite.connect("users.db") as db:
         await db.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)")
@@ -49,6 +63,7 @@ async def check_sub(user_id: int) -> bool:
 def download_video(url: str) -> str:
     is_instagram = "instagram.com" in url
 
+    # Avval proksisiz sinab ko'ramiz
     ydl_opts = {
         "format": "best[filesize<50M]/best",
         "outtmpl": "video_%(id)s.%(ext)s",
@@ -59,9 +74,22 @@ def download_video(url: str) -> str:
     if is_instagram and os.path.exists(COOKIE_FILE):
         ydl_opts["cookiefile"] = COOKIE_FILE
 
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        return ydl.prepare_filename(info)
+    # Instagram uchun proksi bilan sinab ko'ramiz
+    if is_instagram:
+        for proxy in PROXIES:
+            try:
+                ydl_opts["proxy"] = proxy
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    return ydl.prepare_filename(info)
+            except Exception as e:
+                logger.warning(f"Proksi {proxy} ishlamadi: {e}")
+                continue
+        raise Exception("Barcha proksilar ishlamadi")
+    else:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            return ydl.prepare_filename(info)
 
 # --- /start ---
 @dp.message(Command("start"))
@@ -112,7 +140,6 @@ async def handle_link(message: types.Message):
             "• Video juda katta (50MB dan oshmasligi kerak)\n"
             "• Sayt qo'llab-quvvatlanmaydi"
         )
-        return
 
     finally:
         if "file_path" in locals() and os.path.exists(file_path):
